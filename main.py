@@ -1,8 +1,13 @@
+import tkinter.ttk
+
 import yt_dlp
-import PySimpleGUI as Sg
+#import PySimpleGUI as Sg
+from tkinter import *
+from tkinter.ttk import *
 import os
 
 
+"""
 def download(x, y, z):
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -101,3 +106,48 @@ if __name__ == '__main__':
             break
 
     window.close()
+"""
+
+
+def download():
+    print(path.get())
+    print(url.get())
+    print(title.get())
+    print(download_type.get())
+
+
+def stop():
+    popup = Toplevel(root)
+    popup.title("Wirklich Beenden?")
+
+    Button(popup, text="Ja", command=root.destroy()).grid(column=1, row=1)
+    Button(popup, text="Nein", command=popup.destroy()).grid(column=2, row=1)
+
+
+if __name__ == '__main__':
+    root = Tk()
+    root.title("YoutubeDownloader")
+    mainframe = Frame(root, padding="3 3 12 12")
+    mainframe.grid(column=0, row=0)
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+
+    Label(mainframe, text="Speicherort").grid(column=1, row=1)
+    path = StringVar()
+    Entry(mainframe, textvariable=path).grid(column=2, row=1)
+    Button(mainframe, text="Browse").grid(column=3, row=1)
+
+    Label(mainframe, text="Video-Url").grid(column=1, row=2)
+    url = StringVar()
+    Entry(mainframe, textvariable=url).grid(column=2, row=2)
+    download_type = StringVar()
+    Combobox(mainframe, textvariable=download_type, values=['mp3', 'm4a', 'wav', 'mp4']).grid(column=3, row=2)
+
+    Label(mainframe, text="Titel").grid(column=1, row=3)
+    title = StringVar()
+    Entry(mainframe, textvariable=title).grid(column=2, row=3)
+    Button(mainframe, text="Download", command=download).grid(column=3, row=3)
+
+    Button(mainframe, text="Beenden", command=stop).grid(column=3, row=4)
+
+    root.mainloop()
