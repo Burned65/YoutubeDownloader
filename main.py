@@ -1,10 +1,11 @@
 import tkinter.ttk
+import tkinter
 
 import yt_dlp
-#import PySimpleGUI as Sg
 from tkinter import *
 from tkinter.ttk import *
 import os
+from tkinter import filedialog
 
 
 """
@@ -109,19 +110,117 @@ if __name__ == '__main__':
 """
 
 
+def remove_and_close():
+    os.remove(path.get() + "/" + title.get() + "." + download_type.get())
+
+
 def download():
-    print(path.get())
-    print(url.get())
-    print(title.get())
-    print(download_type.get())
+    try:
+        if url.get() == "" or path.get() == "" or title.get() == "" or download_type.get() == "":
+            popup = Toplevel(root)
+            popup.title("Etwas ist schiefgelaufen")
+            popup.resizable(width=False, height=False)
+            popup.grab_set()
+
+            popup_frame = Frame(popup)
+            popup_frame.grid(column=0, row=0)
+
+            Label(popup_frame, text="Eins der Pflichtfelder ist nicht gefüllt!").grid(column=1, row=1)
+            Button(popup_frame, text="Ok", command=popup.destroy).grid(column=1, row=2)
+
+            popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
+
+            root.wait_window(popup)
+
+            return
+        if os.path.isfile(path.get() + "/" + title.get() + "." + download_type.get()):
+            popup = Toplevel(root)
+            popup.title("Datei exisitiert bereits")
+            popup.resizable(width=False, height=False)
+            popup.grab_set()
+
+            popup_frame = Frame(popup)
+            popup_frame.grid(column=0, row=0)
+
+            Label(popup_frame, text="Datei existiert bereits, überschreiben?").grid(column=1, row=1, columnspan=2)
+            Button(popup_frame, text="Ja", command=remove_and_close).grid(column=1, row=2)
+            Button(popup_frame, text="Nein", command=popup.destroy).grid(column=2, row=2)
+
+            popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
+
+            root.wait_window(popup)
+
+        if download_type.get() == "mp4":
+            ydl_opts = {
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'outtmpl': path.get() + "/" + title.get()
+            }
+        else:
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': f'{download_type.get()}',
+                    'preferredquality': '192',
+                }],
+                'outtmpl': path.get() + "/" + title.get()
+            }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url.get()])
+        popup = Toplevel(root)
+        popup.title("Video fertig heruntergeladen")
+        popup.resizable(width=False, height=False)
+        popup.grab_set()
+
+        popup_frame = Frame(popup)
+        popup_frame.grid(column=0, row=0)
+
+        Label(popup_frame, text="Video wurde fertig heruntergeladen!").grid(column=1, row=1)
+        Button(popup_frame, text="Ok", command=popup.destroy).grid(column=1, row=2)
+
+        popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
+
+        root.wait_window(popup)
+
+        url.set("")
+        title.set("")
+    except yt_dlp.utils.DownloadError as e:
+        popup = Toplevel(root)
+        popup.title("Etwas ist schiefgelaufen")
+        popup.resizable(width=False, height=False)
+        popup.grab_set()
+
+        popup_frame = Frame(popup)
+        popup_frame.grid(column=0, row=0)
+
+        Label(popup_frame, text="Etwas ist schiefgelaufen :(\nWahrscheinlich wurde der Videolink nicht gefunden!").grid(column=1, row=1)
+        Button(popup_frame, text="Ok", command=popup.destroy).grid(column=1, row=2)
+
+        popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
+
+        root.wait_window(popup)
 
 
 def stop():
     popup = Toplevel(root)
     popup.title("Wirklich Beenden?")
+    popup.resizable(width=False, height=False)
+    popup.grab_set()
 
-    Button(popup, text="Ja", command=root.destroy()).grid(column=1, row=1)
-    Button(popup, text="Nein", command=popup.destroy()).grid(column=2, row=1)
+    popup_frame = Frame(popup)
+    popup_frame.grid(column=0, row=0)
+
+    Label(popup_frame, text="Wirklich Beenden?").grid(column=1, row=1, columnspan=2)
+    Button(popup_frame, text="Ja", command=root.destroy).grid(column=1, row=2)
+    Button(popup_frame, text="Nein", command=popup.destroy).grid(column=2, row=2)
+
+    popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
+
+    root.wait_window(popup)
+
+
+def browse_files():
+    path.set(filedialog.askdirectory(title="Speicherordner auswählen"))
 
 
 if __name__ == '__main__':
@@ -131,17 +230,18 @@ if __name__ == '__main__':
     mainframe.grid(column=0, row=0)
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
+    root.resizable(width=False, height=False)
 
     Label(mainframe, text="Speicherort").grid(column=1, row=1)
     path = StringVar()
     Entry(mainframe, textvariable=path).grid(column=2, row=1)
-    Button(mainframe, text="Browse").grid(column=3, row=1)
+    Button(mainframe, text="Browse", command=browse_files).grid(column=3, row=1)
 
     Label(mainframe, text="Video-Url").grid(column=1, row=2)
     url = StringVar()
     Entry(mainframe, textvariable=url).grid(column=2, row=2)
     download_type = StringVar()
-    Combobox(mainframe, textvariable=download_type, values=['mp3', 'm4a', 'wav', 'mp4']).grid(column=3, row=2)
+    Combobox(mainframe, textvariable=download_type, values=['mp3', 'm4a', 'wav', 'mp4'], width=8).grid(column=3, row=2)
 
     Label(mainframe, text="Titel").grid(column=1, row=3)
     title = StringVar()
