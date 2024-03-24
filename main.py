@@ -1,3 +1,4 @@
+import sys
 import tkinter.ttk
 import tkinter
 
@@ -6,6 +7,7 @@ from tkinter import *
 from tkinter.ttk import *
 import os
 from tkinter import filedialog
+from tkinter.messagebox import *
 
 
 """
@@ -110,50 +112,36 @@ if __name__ == '__main__':
 """
 
 
-def remove_and_close():
-    os.remove(path.get() + "/" + title.get() + "." + download_type.get())
+def update_progress_bar_popup(d):
+    if d['status'] == 'downloading':
+        p = d['_percent_str']
+        p = p.replace('%', '')
+
+        popup.update()
+        progress_var.set(p)
+        if destroyed.get():
+            raise ValueError
 
 
 def download():
     try:
         if url.get() == "" or path.get() == "" or title.get() == "" or download_type.get() == "":
-            popup = Toplevel(root)
-            popup.title("Etwas ist schiefgelaufen")
-            popup.resizable(width=False, height=False)
-            popup.grab_set()
-
-            popup_frame = Frame(popup)
-            popup_frame.grid(column=0, row=0)
-
-            Label(popup_frame, text="Eins der Pflichtfelder ist nicht gefüllt!").grid(column=1, row=1)
-            Button(popup_frame, text="Ok", command=popup.destroy).grid(column=1, row=2)
-
-            popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
-
-            root.wait_window(popup)
-
+            showerror("Etwas ist schiefgelaufen", "Eins der Pflichtfelder ist nicht gefüllt!")
             return
         if os.path.isfile(path.get() + "/" + title.get() + "." + download_type.get()):
-            popup = Toplevel(root)
-            popup.title("Datei exisitiert bereits")
-            popup.resizable(width=False, height=False)
-            popup.grab_set()
+            res = askyesno("Datei exisitiert bereits", "Datei existiert bereits, überschreiben?")
 
-            popup_frame = Frame(popup)
-            popup_frame.grid(column=0, row=0)
-
-            Label(popup_frame, text="Datei existiert bereits, überschreiben?").grid(column=1, row=1, columnspan=2)
-            Button(popup_frame, text="Ja", command=remove_and_close).grid(column=1, row=2)
-            Button(popup_frame, text="Nein", command=popup.destroy).grid(column=2, row=2)
-
-            popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
-
-            root.wait_window(popup)
+            if res:
+                os.remove(path.get() + "/" + title.get() + "." + download_type.get())
+            else:
+                title.set("")
+                return
 
         if download_type.get() == "mp4":
             ydl_opts = {
                 'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-                'outtmpl': path.get() + "/" + title.get()
+                'outtmpl': path.get() + "/" + title.get(),
+                'progress_hooks': [update_progress_bar_popup]
             }
         else:
             ydl_opts = {
@@ -163,60 +151,26 @@ def download():
                     'preferredcodec': f'{download_type.get()}',
                     'preferredquality': '192',
                 }],
-                'outtmpl': path.get() + "/" + title.get()
+                'outtmpl': path.get() + "/" + title.get(),
+                'progress_hooks': [update_progress_bar_popup]
             }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            popup.wm_deiconify()
             ydl.download([url.get()])
-        popup = Toplevel(root)
-        popup.title("Video fertig heruntergeladen")
-        popup.resizable(width=False, height=False)
-        popup.grab_set()
-
-        popup_frame = Frame(popup)
-        popup_frame.grid(column=0, row=0)
-
-        Label(popup_frame, text="Video wurde fertig heruntergeladen!").grid(column=1, row=1)
-        Button(popup_frame, text="Ok", command=popup.destroy).grid(column=1, row=2)
-
-        popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
-
-        root.wait_window(popup)
+            popup.wm_withdraw()
+            showinfo("Video fertig heruntergeladen", "Video wurde fertig heruntergeladen!")
 
         url.set("")
         title.set("")
     except yt_dlp.utils.DownloadError as e:
-        popup = Toplevel(root)
-        popup.title("Etwas ist schiefgelaufen")
-        popup.resizable(width=False, height=False)
-        popup.grab_set()
-
-        popup_frame = Frame(popup)
-        popup_frame.grid(column=0, row=0)
-
-        Label(popup_frame, text="Etwas ist schiefgelaufen :(\nWahrscheinlich wurde der Videolink nicht gefunden!").grid(column=1, row=1)
-        Button(popup_frame, text="Ok", command=popup.destroy).grid(column=1, row=2)
-
-        popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
-
-        root.wait_window(popup)
+        showerror("Etwas ist schiefgelaufen", "Etwas ist schiefgelaufen :(\nWahrscheinlich wurde der Videolink nicht gefunden!")
 
 
 def stop():
-    popup = Toplevel(root)
-    popup.title("Wirklich Beenden?")
-    popup.resizable(width=False, height=False)
-    popup.grab_set()
-
-    popup_frame = Frame(popup)
-    popup_frame.grid(column=0, row=0)
-
-    Label(popup_frame, text="Wirklich Beenden?").grid(column=1, row=1, columnspan=2)
-    Button(popup_frame, text="Ja", command=root.destroy).grid(column=1, row=2)
-    Button(popup_frame, text="Nein", command=popup.destroy).grid(column=2, row=2)
-
-    popup.geometry("+%d+%d" % (root.winfo_x(), root.winfo_y()))
-
-    root.wait_window(popup)
+    res = askyesno("Wirklich Beenden?", "Wirklich Beenden?")
+    if res:
+        destroyed.set(True)
+        root.destroy()
 
 
 def browse_files():
@@ -249,5 +203,16 @@ if __name__ == '__main__':
     Button(mainframe, text="Download", command=download).grid(column=3, row=3)
 
     Button(mainframe, text="Beenden", command=stop).grid(column=3, row=4)
+
+    progress_var = DoubleVar()
+    popup = Toplevel()
+    popup.wm_withdraw()
+    Label(popup, text="Files being downloaded").grid(row=0, column=0)
+
+    progress_bar = Progressbar(popup, variable=progress_var, maximum=100)
+    progress_bar.grid(row=1, column=0)
+    popup.pack_slaves()
+    destroyed = BooleanVar()
+    destroyed.set(False)
 
     root.mainloop()
