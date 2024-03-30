@@ -6,6 +6,11 @@ from tkinter import filedialog
 from tkinter.messagebox import *
 
 
+def on_closing():
+    destroyed.set(True)
+    root.destroy()
+
+
 def update_progress_bar_popup(d):
     if d['status'] == 'downloading':
         p = d['_percent_str']
@@ -14,7 +19,10 @@ def update_progress_bar_popup(d):
         popup.update()
         progress_var.set(p)
         if destroyed.get():
-            raise ValueError
+            #for file in os.listdir(path.get()):
+            #    if ("."+download_type.get()+".part" in file and title.get() in file) or ("."+download_type.get()+"ytdl" in file and title.get() in file):
+            #        os.remove(path.get()+"/"+file)
+            raise SystemExit(0)
 
 
 def download():
@@ -79,6 +87,7 @@ if __name__ == '__main__':
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
     root.resizable(width=False, height=False)
+    root.protocol("WM_DELETE_WINDOW", on_closing)
 
     Label(mainframe, text="Speicherort").grid(column=1, row=1)
     path = StringVar()
@@ -94,7 +103,8 @@ if __name__ == '__main__':
     Label(mainframe, text="Titel").grid(column=1, row=3)
     title = StringVar()
     Entry(mainframe, textvariable=title).grid(column=2, row=3)
-    Button(mainframe, text="Download", command=download).grid(column=3, row=3)
+    download_button = Button(mainframe, text="Download", command=download)
+    download_button.grid(column=3, row=3)
 
     Button(mainframe, text="Beenden", command=stop).grid(column=3, row=4)
 
